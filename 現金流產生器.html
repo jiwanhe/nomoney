@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>現金流產生器</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme: light;
+  --bg:#D7EAEE; --card:#FFFFFF; --ink:#0E3634; --sub:#4C7477; --line:#E3F0F2;
+  --deep:#1D837F; --mid:#3EAEB1; --sky:#61BACA; --mist:#9CD1CE; --pale:#9FD8E1;
+  --field:#F2F8F9; --warn:#B4532A; --on-deep:#FFFFFF;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --bg:#0B1E1F; --card:#132B2C; --ink:#E4F2F3; --sub:#93B7B9; --line:#1F3B3C;
+    --deep:#3EAEB1; --mid:#2C8F92; --sky:#61BACA; --mist:#2E5E5E; --pale:#9FD8E1;
+    --field:#0F2526; --warn:#E3906A; --on-deep:#06191A;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:#0B1E1F; --card:#132B2C; --ink:#E4F2F3; --sub:#93B7B9; --line:#1F3B3C;
+  --deep:#3EAEB1; --mid:#2C8F92; --sky:#61BACA; --mist:#2E5E5E; --pale:#9FD8E1;
+  --field:#0F2526; --warn:#E3906A; --on-deep:#06191A;
+}
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;font-variant-numeric:tabular-nums;line-height:1.5}
+.wrap{max-width:760px;margin:0 auto;padding:20px 16px 48px}
+header h1{font-size:28px;font-weight:900;letter-spacing:.5px}
+header p{color:var(--sub);font-size:14px;margin-top:4px}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:18px 0 14px}
+.kpi{background:var(--deep);color:var(--on-deep);border-radius:18px;padding:14px 16px}
+.kpi .k{font-size:13px;opacity:.85}
+.kpi .v{font-size:26px;font-weight:900;line-height:1.2}
+.kpi .n{font-size:12px;opacity:.85}
+.kpi.alt{background:var(--card);color:var(--ink);border:1.5px solid var(--line)}
+.kpi.alt .v{color:var(--deep)}
+section{background:var(--card);border-radius:18px;padding:16px;margin-bottom:12px}
+h2{font-size:17px;font-weight:800;color:var(--deep);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+h2 small{margin-left:auto;font-size:12px;color:var(--sub);font-weight:500}
+.chart{width:100%;overflow-x:auto}
+.legend{display:flex;gap:16px;font-size:13px;color:var(--sub);margin-bottom:4px;flex-wrap:wrap}
+.legend i{display:inline-block;width:22px;height:4px;border-radius:2px;vertical-align:middle;margin-right:6px}
+.tbl{width:100%;overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px;min-width:460px}
+th{color:var(--sub);font-weight:700;text-align:right;padding:6px 6px;white-space:nowrap}
+td{text-align:right;padding:6px 6px;border-top:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+tr.sum td{font-weight:800;color:var(--deep);border-top:2px solid var(--deep)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid2>*,.row>*,.kpis>*{min-width:0}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--sub)}
+input,select{font:inherit;font-size:15px;color:var(--ink);background:var(--field);border:1.5px solid var(--line);border-radius:10px;padding:8px 10px;width:100%;min-width:0}
+input:focus,select:focus{outline:2px solid var(--mid);outline-offset:0;border-color:transparent}
+.rows{display:flex;flex-direction:column;gap:8px}
+.row{display:grid;gap:6px;align-items:end;background:var(--field);border-radius:12px;padding:8px}
+.row input,.row select{background:var(--card);font-size:14px;padding:7px 8px}
+.row .del{border:none;background:transparent;color:var(--sub);font-size:20px;line-height:1;padding:6px;cursor:pointer;align-self:center}
+.r-in{grid-template-columns:1.4fr 1.2fr 1fr auto}
+.r-card{grid-template-columns:1.1fr 1fr 1.15fr 1fr 1.15fr auto}
+.r-out{grid-template-columns:1.3fr 1.1fr 1fr .9fr auto}
+.r-fix{grid-template-columns:1.2fr 1fr 1fr 1fr .6fr auto}
+.r-inst{grid-template-columns:1.2fr 1fr .7fr 1fr .6fr auto}
+.mini{font-size:11px;color:var(--sub)}
+.btn{font:inherit;font-size:14px;font-weight:700;border-radius:12px;padding:10px 14px;border:none;cursor:pointer}
+.btn.add{background:transparent;color:var(--deep);border:1.5px dashed var(--mid);width:100%;margin-top:8px}
+.btn.main{background:var(--deep);color:var(--on-deep)}
+.btn.ghost{background:transparent;color:var(--sub);border:1.5px solid var(--line)}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 14px}
+.hint{font-size:12px;color:var(--sub);margin-top:8px;line-height:1.55}
+.warn{color:var(--warn)}
+#imgOut{margin-top:4px}
+#imgOut img{width:100%;max-width:360px;border-radius:12px;display:block;margin:8px auto 0}
+details summary{cursor:pointer;font-weight:700;color:var(--deep)}
+@media (max-width:560px){
+  .r-in{grid-template-columns:1fr 1fr auto}
+  .r-in .nm{grid-column:1 / -1}
+  .r-card{grid-template-columns:1fr 1fr auto}
+  .r-card .nm{grid-column:1 / -1}
+  .r-card .c2{grid-column:1 / 2}
+  .r-out{grid-template-columns:1fr 1fr auto}
+  .r-out .nm{grid-column:1 / -1}
+  .r-fix{grid-template-columns:1fr 1fr 1fr auto}
+  .r-fix .nm{grid-column:1 / -1}
+  .r-inst{grid-template-columns:1fr 1fr 1fr auto}
+  .r-inst .nm{grid-column:1 / -1}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>現金流產生器</h1>
+  <p>輸入現金、卡費、回流和分期，自動算出每月月底的帳戶現金與真實淨額。資料只存在這台裝置。</p>
+</header>
+
+<div class="kpis">
+  <div class="kpi"><div class="k">期末帳戶現金</div><div class="v" id="kCash">–</div><div class="n" id="kCashN"></div></div>
+  <div class="kpi"><div class="k">期末真實淨額</div><div class="v" id="kNet">–</div><div class="n">現金扣掉還沒繳的卡費</div></div>
+  <div class="kpi alt"><div class="k">期間最低現金</div><div class="v" id="kMin">–</div><div class="n" id="kMinN"></div></div>
+  <div class="kpi alt"><div class="k">淨額轉正</div><div class="v" id="kPos">–</div><div class="n" id="kPosN"></div></div>
+</div>
+
+<section>
+  <h2>月底走勢</h2>
+  <div class="legend"><span><i style="background:var(--deep)"></i>帳戶現金</span><span><i style="background:var(--sky)"></i>真實淨額</span></div>
+  <div class="chart" id="chart"></div>
+</section>
+
+<section>
+  <h2>每月明細<small>生活費刷卡的部分，下個月才扣</small></h2>
+  <div class="tbl" id="tbl"></div>
+</section>
+
+<section>
+  <h2>手機圖片<small id="imgState">改完數字會自動更新</small></h2>
+  <div class="actions" style="margin:0 0 4px">
+    <button class="btn main" id="btnSave">儲存圖片</button>
+    <button class="btn ghost" id="btnRecalc">重新計算</button>
+    <button class="btn ghost" id="btnReset">恢復預設資料</button>
+  </div>
+  <div id="imgOut"><div class="mini" id="saveHint">手機也可以直接長按圖片儲存。</div><img id="imgEl" alt="現金流圖片"></div>
+</section>
+
+<section>
+  <h2>基本設定</h2>
+  <div class="grid2">
+    <label class="f">起始日期<input type="date" id="startDate"></label>
+    <label class="f">起始帳戶現金<input type="number" inputmode="numeric" id="startCash"></label>
+    <label class="f">每月實領薪水<input type="number" inputmode="numeric" id="salary"></label>
+    <label class="f">發薪日（每月幾號）<input type="number" inputmode="numeric" id="payday" min="1" max="31"></label>
+    <label class="f">每月生活費<input type="number" inputmode="numeric" id="living"></label>
+    <label class="f">刷卡比例（%）<input type="number" inputmode="numeric" id="cardPct" min="0" max="100"></label>
+    <label class="f">起始月份剩下的生活費<input type="number" inputmode="numeric" id="remain"></label>
+    <label class="f">未來生活費扣款日（約幾號）<input type="number" inputmode="numeric" id="cardDay" min="1" max="31"></label>
+    <label class="f">要算幾個月<select id="months"></select></label>
+    <label class="f">圖片標題<input type="text" id="title"></label>
+  </div>
+</section>
+
+<section>
+  <h2>信用卡<small>本期帳單＋下期（目前未出帳）</small></h2>
+  <div class="rows" id="cardRows"></div>
+  <button class="btn add" data-add="cards">＋ 新增一張卡</button>
+  <p class="hint">「下期」填目前已刷、還沒出帳的金額，<b>不要含分期</b>；分期統一填在下面的「分期付款」。這個月之後還會刷的生活費，用上面的「起始月份剩下的生活費」來算。</p>
+</section>
+
+<section>
+  <h2>回流（會進帳的錢）<small>賣股、退款、別人還錢</small></h2>
+  <div class="rows" id="inRows"></div>
+  <button class="btn add" data-add="inflows">＋ 新增一筆回流</button>
+</section>
+
+<section>
+  <h2>一次性支出<small>超出日常生活費的額外花費</small></h2>
+  <div class="rows" id="outRows"></div>
+  <button class="btn add" data-add="outflows">＋ 新增一筆支出</button>
+</section>
+
+<section>
+  <h2>固定每月支出<small>還款、房租、保險</small></h2>
+  <div class="rows" id="fixRows"></div>
+  <button class="btn add" data-add="fixed">＋ 新增一項</button>
+  <p class="hint">金額會變的（例如最後一期只還一部分），拆成兩筆，各自設定起訖月份。</p>
+</section>
+
+<section>
+  <h2>分期付款<small>零利率分期、貸款</small></h2>
+  <div class="rows" id="instRows"></div>
+  <button class="btn add" data-add="inst">＋ 新增分期</button>
+</section>
+
+<section>
+  <details>
+    <summary>計算方式</summary>
+    <p class="hint">帳戶現金：起始現金，加上薪水與回流，扣掉卡費帳單、現金支出、固定支出與分期。每月生活費依刷卡比例拆開：刷卡的部分在下個月的卡費扣款日扣，現金的部分當月扣。<br>真實淨額：月底現金，扣掉已經刷了但還沒繳的卡費（不含未來的分期期數）。<br>這是估算工具，實際金額以銀行與發卡行為準。</p>
+  </details>
+</section>
+</div>
+
+<script>
+(function(){
+const KEY = 'cashflow-generator-v2';
+const DEFAULTS = {
+  startDate: '2026-11-08', startCash: 71495, salary: 48146, payday: 1,
+  living: 25000, cardPct: 100, remain: 11500, cardDay: 5, months: 4,
+  title: '我的現金流',
+  cards: [
+    {name:'Richart 卡', cur:17428, curDate:'2026-11-09', next:2650, nextDate:'2026-12-05'},
+    {name:'匯豐 Live+', cur:15099, curDate:'2026-11-09', next:5195, nextDate:'2026-12-08'},
+    {name:'玉山 Unicard', cur:5306, curDate:'2026-11-10', next:5032, nextDate:'2026-12-10'},
+    {name:'凱基雙幣', cur:1500, curDate:'2026-11-20', next:0, nextDate:'2026-12-20'},
+    {name:'國泰 cube', cur:13970, curDate:'2026-11-25', next:0, nextDate:'2026-12-25'},
+    {name:'吉鶴卡', cur:85, curDate:'2026-11-27', next:0, nextDate:'2026-12-27'},
+    {name:'永豐 JCB', cur:0, curDate:'', next:2500, nextDate:'2026-12-01'},
+    {name:'中信 uniopen', cur:0, curDate:'', next:1102, nextDate:'2026-12-13'}
+  ],
+  inflows: [
+    {name:'ETF 賣出款', date:'2026-11-09', amt:2640},
+    {name:'台光電賣出款', date:'2026-11-10', amt:7348},
+    {name:'台達電賣出款', date:'2026-11-10', amt:2121}
+  ],
+  outflows: [
+    {name:'遊戲周邊', date:'2026-11-10', amt:2000, pay:'card'}
+  ],
+  fixed: [
+    {name:'還媽媽', amt:8000, from:'2026-12', to:'2027-01', day:1},
+    {name:'還媽媽（最後一期）', amt:5560, from:'2027-02', to:'2027-02', day:1}
+  ],
+  inst: [
+    {name:'機票（Richart 卡）', per:3339, n:3, first:'2026-12', day:5},
+    {name:'閱讀器（Richart 卡）', per:1264, n:6, first:'2026-12', day:5}
+  ]
+};
+let S = load();
+
+function load(){
+  try{ const raw = localStorage.getItem(KEY); if(raw){ const o = JSON.parse(raw); if(o && typeof o==='object' && Array.isArray(o.cards)) return Object.assign(structuredClone(DEFAULTS), o); } }catch(e){}
+  return structuredClone(DEFAULTS);
+}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
+
+const $ = id => document.getElementById(id);
+const fmt = v => (v<0?'−':'') + Math.abs(Math.round(v)).toLocaleString('en-US');
+const fmtS = v => (v>0?'+':'') + fmt(v);
+const num = v => { const n = Number(v); return isFinite(n) ? n : 0; };
+
+function ym(y,m){ return y + '-' + String(m).padStart(2,'0'); }
+function addMonths(key, k){ let [y,m] = key.split('-').map(Number); m += k; while(m>12){m-=12;y++;} while(m<1){m+=12;y--;} return ym(y,m); }
+function lastDay(key){ const [y,m] = key.split('-').map(Number); return new Date(y, m, 0).getDate(); }
+function dateIn(key, day){ return key + '-' + String(Math.min(Math.max(1,day), lastDay(key))).padStart(2,'0'); }
+function mLabel(key){ const [y,m] = key.split('-').map(Number); return m + '月'; }
+
+function compute(){
+  const start = S.startDate || DEFAULTS.startDate;
+  const m0 = start.slice(0,7);
+  const N = Math.max(1, Math.min(24, num(S.months)));
+  const months = Array.from({length:N}, (_,i)=>addMonths(m0,i));
+  const endKey = months[N-1];
+  const pct = Math.max(0, Math.min(100, num(S.cardPct)))/100;
+  const ev = []; // {date, cash, cat, month}
+  const debts = []; // card spending incurred {incurred, due, amt}
+  const push = (date, cash, cat) => { if(date >= start) ev.push({date, cash, cat}); };
+
+  months.forEach((mk, i) => {
+    // salary
+    const pd = dateIn(mk, num(S.payday)||1);
+    if(i>0 || pd > start) push(pd, num(S.salary), 'salary');
+    // living
+    const amt = i===0 ? num(S.remain) : num(S.living);
+    const cashPart = amt*(1-pct), cardPart = amt*pct;
+    if(cashPart) push(i===0 ? dateIn(mk, lastDay(mk)) : dateIn(mk, 15), -cashPart, 'livingCash');
+    if(cardPart){
+      const due = dateIn(addMonths(mk,1), num(S.cardDay)||5);
+      debts.push({incurred: dateIn(mk, lastDay(mk)), due, amt: cardPart});
+      push(due, -cardPart, 'card');
+    }
+    // fixed
+    (S.fixed||[]).forEach(f => { if(f.from && f.to && mk >= f.from && mk <= f.to) push(dateIn(mk, num(f.day)||1), -num(f.amt), 'fixed'); });
+    // installments
+    (S.inst||[]).forEach(t => {
+      if(!t.first) return; const n = Math.max(0, num(t.n));
+      for(let k=0;k<n;k++){ if(addMonths(t.first,k)===mk) push(dateIn(mk, num(t.day)||num(S.cardDay)||5), -num(t.per), 'inst'); }
+    });
+  });
+  (S.cards||[]).forEach(c => {
+    [['cur','curDate'],['next','nextDate']].forEach(([a,d]) => {
+      const amt = num(c[a]); if(!amt || !c[d]) return;
+      push(c[d], -amt, 'card'); debts.push({incurred:start, due:c[d], amt});
+    });
+  });
+  (S.inflows||[]).forEach(x => { if(x.date) push(x.date, num(x.amt), 'inflow'); });
+  (S.outflows||[]).forEach(o => {
+    if(!o.date) return;
+    if(o.pay==='card'){ const due = dateIn(addMonths(o.date.slice(0,7),1), num(S.cardDay)||5); debts.push({incurred:o.date, due, amt:num(o.amt)}); push(due, -num(o.amt), 'card'); }
+    else push(o.date, -num(o.amt), 'outCash');
+  });
+
+  ev.sort((a,b)=> a.date<b.date?-1:a.date>b.date?1:(b.cash-a.cash));
+  let cash = num(S.startCash), minCash = cash, minDate = start;
+  const rows = months.map(mk => ({mk, salary:0, inflow:0, fixed:0, card:0, inst:0, cashSpend:0, endCash:0, net:0}));
+  const idx = Object.fromEntries(months.map((m,i)=>[m,i]));
+  ev.forEach(e => {
+    const mk = e.date.slice(0,7); const r = rows[idx[mk]]; if(!r) return;
+    cash += e.cash;
+    if(cash < minCash){ minCash = cash; minDate = e.date; }
+    if(e.cat==='salary') r.salary += e.cash;
+    else if(e.cat==='inflow') r.inflow += e.cash;
+    else if(e.cat==='fixed') r.fixed += e.cash;
+    else if(e.cat==='card') r.card += e.cash;
+    else if(e.cat==='inst') r.inst += e.cash;
+    else r.cashSpend += e.cash;
+  });
+  // end cash per month
+  let run = num(S.startCash);
+  rows.forEach(r => { run += r.salary + r.inflow + r.fixed + r.card + r.inst + r.cashSpend; r.endCash = run; });
+  rows.forEach(r => {
+    const me = dateIn(r.mk, lastDay(r.mk));
+    const unpaid = debts.filter(d => d.incurred <= me && d.due > me).reduce((s,d)=>s+d.amt,0);
+    r.net = r.endCash - unpaid;
+  });
+  const unpaid0 = debts.filter(d => d.incurred <= start && d.due >= start).reduce((s,d)=>s+d.amt,0);
+  const net0 = num(S.startCash) - unpaid0;
+  return {start, months, rows, minCash, minDate, net0, cash0:num(S.startCash), endKey};
+}
+
+function chartSVG(R, w, h, opts){
+  opts = opts || {};
+  const labels = ['現在', ...R.rows.map(r=>mLabel(r.mk)+'底')];
+  const cash = [R.cash0, ...R.rows.map(r=>r.endCash)];
+  const net = [R.net0, ...R.rows.map(r=>r.net)];
+  const all = cash.concat(net, [0]);
+  let lo = Math.min(...all), hi = Math.max(...all);
+  const step = niceStep((hi-lo)/4 || 10000);
+  lo = Math.floor(lo/step)*step; hi = Math.ceil(hi/step)*step; if(hi===lo) hi = lo+step;
+  const pl=opts.pl||64, pr=opts.pr||36, pt=opts.pt||34, pb=opts.pb||40;
+  const n = labels.length;
+  const X = i => pl + (n===1?0:i*(w-pl-pr)/(n-1));
+  const Y = v => pt + (hi-v)/(hi-lo)*(h-pt-pb);
+  const fs = opts.fs || 12;
+  let s = `<svg viewBox="0 0 ${w} ${h}" width="100%" xmlns="http://www.w3.org/2000/svg" font-family="Noto Sans TC, PingFang TC, sans-serif">`;
+  for(let v=lo; v<=hi+1; v+=step){
+    const y = Y(v);
+    s += `<line x1="${pl}" x2="${w-pr}" y1="${y}" y2="${y}" stroke="${v===0?'var(--deep)':'var(--line)'}" stroke-width="${v===0?1.6:1}"/>`;
+    s += `<text x="${pl-8}" y="${y+4}" text-anchor="end" font-size="${fs-1}" fill="var(--sub)">${shortNum(v)}</text>`;
+  }
+  const pts = a => a.map((v,i)=>`${X(i)},${Y(v)}`).join(' ');
+  s += `<polyline points="${pts(cash)}" fill="none" stroke="var(--deep)" stroke-width="3" stroke-linejoin="round"/>`;
+  s += `<polyline points="${pts(net)}" fill="none" stroke="var(--sky)" stroke-width="3" stroke-dasharray="7 5" stroke-linejoin="round"/>`;
+  labels.forEach((l,i)=>{
+    const anc = i===0?'start':(i===n-1?'end':'middle'); const xo = i===0?6:(i===n-1?-6:0);
+    s += `<circle cx="${X(i)}" cy="${Y(cash[i])}" r="4.5" fill="var(--deep)"/><circle cx="${X(i)}" cy="${Y(net[i])}" r="4.5" fill="var(--sky)"/>`;
+    const cAbove = cash[i] >= net[i];
+    s += `<text x="${X(i)+xo}" y="${Y(cash[i]) + (cAbove?-9:17)}" text-anchor="${anc}" font-size="${fs}" font-weight="800" fill="var(--deep)">${fmt(cash[i])}</text>`;
+    s += `<text x="${X(i)+xo}" y="${Y(net[i]) + (cAbove?17:-9)}" text-anchor="${anc}" font-size="${fs}" font-weight="800" fill="var(--sky)">${fmt(net[i])}</text>`;
+    s += `<text x="${X(i)}" y="${h-12}" text-anchor="middle" font-size="${fs}" fill="var(--ink)">${l}</text>`;
+  });
+  return s + '</svg>';
+}
+function niceStep(raw){ const p = Math.pow(10, Math.floor(Math.log10(Math.abs(raw)||1))); const m = raw/p; return (m<=1?1:m<=2?2:m<=5?5:10)*p; }
+function shortNum(v){ if(v===0) return '0'; const a = Math.abs(v); const s = a>=10000 ? (a/10000).toFixed(a%10000?1:0)+'萬' : a.toLocaleString('en-US'); return (v<0?'−':'')+s; }
+
+function render(){
+  const R = compute();
+  const last = R.rows[R.rows.length-1];
+  $('kCash').textContent = fmt(last.endCash);
+  $('kCashN').textContent = mLabel(last.mk) + '底';
+  $('kNet').textContent = fmt(last.net);
+  $('kMin').textContent = fmt(R.minCash);
+  $('kMinN').textContent = R.minDate.slice(5).replace('-','/') + (R.minCash<0?'　會透支！':'');
+  $('kMin').className = 'v' + (R.minCash<0?' warn':'');
+  const firstNeg = [R.net0, ...R.rows.map(r=>r.net)].some(v=>v<0);
+  const pos = R.rows.find((r,i)=> r.net>=0 && R.rows.slice(i).every(x=>x.net>=0));
+  if(!firstNeg){ $('kPos').textContent='一直是正的'; $('kPosN').textContent=''; }
+  else if(pos){ $('kPos').textContent = mLabel(pos.mk)+'底'; $('kPosN').textContent='之後都維持正數'; }
+  else { $('kPos').textContent='期間內未轉正'; $('kPosN').textContent='試著延長月數'; }
+  const cw = Math.max(300, Math.min(720, $('chart').clientWidth || 360)); $('chart').innerHTML = chartSVG(R, cw, cw<480?260:300, {fs: cw<480?11:12, pl: cw<480?44:64, pr: cw<480?14:36});
+  // table
+  const H = R.rows.map(r=>`<th>${mLabel(r.mk)}</th>`).join('');
+  const line = (lab, key) => `<tr><td>${lab}</td>${R.rows.map(r=>`<td>${r[key]?fmtS(r[key]):'–'}</td>`).join('')}</tr>`;
+  scheduleImg();
+  $('tbl').innerHTML = `<table><tr><th></th>${H}</tr>${line('薪水','salary')}${line('回流','inflow')}${line('卡費扣款','card')}${line('分期','inst')}${line('固定支出','fixed')}${line('現金支出','cashSpend')}<tr class="sum"><td>月底現金</td>${R.rows.map(r=>`<td>${fmt(r.endCash)}</td>`).join('')}</tr><tr><td>真實淨額</td>${R.rows.map(r=>`<td>${fmt(r.net)}</td>`).join('')}</tr></table>`;
+  save();
+}
+
+// ---------- form binding ----------
+const SIMPLE = ['startDate','startCash','salary','payday','living','cardPct','remain','cardDay','months','title'];
+function bindSimple(){
+  const sel = $('months'); for(let i=1;i<=12;i++){ const o=document.createElement('option'); o.value=i; o.textContent=i+' 個月'; sel.appendChild(o); }
+  SIMPLE.forEach(k => { const el = $(k); el.value = S[k]; el.addEventListener('input', () => { S[k] = el.type==='number' || k==='months' ? num(el.value) : el.value; render(); }); });
+}
+const LISTS = {
+  cards:   {box:'cardRows', cls:'r-card', blank:()=>({name:'', cur:0, curDate:'', next:0, nextDate:''}), fields:[['name','text','卡名','nm'],['cur','number','本期金額','c2'],['curDate','date','本期扣款日'],['next','number','下期金額','c2'],['nextDate','date','下期扣款日']]},
+  inflows: {box:'inRows', cls:'r-in', blank:()=>({name:'', date:S.startDate, amt:0}), fields:[['name','text','名稱','nm'],['date','date','入帳日'],['amt','number','金額']]},
+  outflows:{box:'outRows', cls:'r-out', blank:()=>({name:'', date:S.startDate, amt:0, pay:'card'}), fields:[['name','text','名稱','nm'],['date','date','日期'],['amt','number','金額'],['pay','pay','付款']]},
+  fixed:   {box:'fixRows', cls:'r-fix', blank:()=>({name:'', amt:0, from:(S.startDate||'').slice(0,7), to:addMonths((S.startDate||DEFAULTS.startDate).slice(0,7),2), day:1}), fields:[['name','text','名稱','nm'],['amt','number','每月金額'],['from','month','起月'],['to','month','迄月'],['day','number','日']]},
+  inst:    {box:'instRows', cls:'r-inst', blank:()=>({name:'', per:0, n:3, first:addMonths((S.startDate||DEFAULTS.startDate).slice(0,7),1), day:5}), fields:[['name','text','名稱','nm'],['per','number','每期金額'],['n','number','期數'],['first','month','首期扣款月'],['day','number','日']]}
+};
+function renderList(key){
+  const L = LISTS[key]; const box = $(L.box); box.innerHTML = '';
+  (S[key]||[]).forEach((item, i) => {
+    const row = document.createElement('div'); row.className = 'row ' + L.cls;
+    L.fields.forEach(([f,type,lab,cls]) => {
+      const wrap = document.createElement('label'); wrap.className = 'f' + (cls?' '+cls:'');
+      const t = document.createElement('span'); t.className='mini'; t.textContent = lab; wrap.appendChild(t);
+      let el;
+      if(type==='pay'){ el = document.createElement('select'); [['card','刷卡'],['cash','現金']].forEach(([v,tx])=>{ const o=document.createElement('option'); o.value=v; o.textContent=tx; el.appendChild(o); }); }
+      else { el = document.createElement('input'); el.type = type; if(type==='number') el.inputMode='numeric'; }
+      el.value = item[f] ?? '';
+      el.addEventListener('input', () => { item[f] = type==='number' ? num(el.value) : el.value; render(); });
+      wrap.appendChild(el); row.appendChild(wrap);
+    });
+    const del = document.createElement('button'); del.className='del'; del.type='button'; del.setAttribute('aria-label','刪除'); del.textContent='×';
+    del.addEventListener('click', () => { S[key].splice(i,1); renderList(key); render(); });
+    row.appendChild(del); box.appendChild(row);
+  });
+}
+document.querySelectorAll('[data-add]').forEach(b => b.addEventListener('click', () => { const k = b.dataset.add; (S[k] = S[k]||[]).push(LISTS[k].blank()); renderList(k); render(); }));
+$('btnReset').addEventListener('click', () => { if(!confirm('要把所有欄位恢復成預設資料嗎？')) return; S = structuredClone(DEFAULTS); SIMPLE.forEach(k=>$(k).value=S[k]); Object.keys(LISTS).forEach(renderList); render(); });
+
+// ---------- image export ----------
+function cssVar(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+async function makeImage(){
+  const R = compute(); const W=1080, Hh=1920;
+  const light = {bg:'#D7EAEE', card:'#FFFFFF', ink:'#0E3634', sub:'#4C7477', line:'#E3F0F2', deep:'#1D837F', sky:'#61BACA', mid:'#3EAEB1'};
+  const c = document.createElement('canvas'); c.width=W*2; c.height=Hh*2; const g=c.getContext('2d'); g.scale(2,2);
+  try{ await document.fonts.ready; }catch(e){}
+  const F = (w,s)=>`${w} ${s}px "Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif`;
+  const rr=(x,y,w,h,r,fill)=>{ g.beginPath(); g.roundRect(x,y,w,h,r); g.fillStyle=fill; g.fill(); };
+  g.fillStyle=light.bg; g.fillRect(0,0,W,Hh);
+  g.fillStyle=light.ink; g.font=F(900,56); g.textBaseline='alphabetic'; g.fillText(S.title||'我的現金流',48,96);
+  g.font=F(500,24); g.fillStyle=light.sub; g.textAlign='right'; g.fillText('資料日期 '+R.start.replace(/-/g,'/'), W-48, 92); g.textAlign='left';
+  const last=R.rows[R.rows.length-1];
+  rr(48,126,W-96,170,28,light.deep);
+  g.fillStyle='#D7EAEE'; g.font=F(500,26); g.fillText(mLabel(last.mk)+'底帳戶現金',84,176); g.fillText(mLabel(last.mk)+'底真實淨額',W/2+30,176);
+  g.fillStyle='#FFFFFF'; g.font=F(900,62); g.fillText(fmt(last.endCash),84,250); g.fillText(fmt(last.net),W/2+30,250);
+  g.fillStyle='#D7EAEE'; g.font=F(500,22); g.fillText('最低 '+fmt(R.minCash)+'（'+R.minDate.slice(5).replace('-','/')+'）',84,282); g.fillText('現金扣掉還沒繳的卡費',W/2+30,282);
+  g.strokeStyle=light.mid; g.lineWidth=2; g.beginPath(); g.moveTo(W/2,150); g.lineTo(W/2,272); g.stroke();
+  // chart card
+  rr(48,316,W-96,700,24,light.card);
+  g.fillStyle=light.deep; g.font=F(800,32); g.fillText('月底走勢',80,368);
+  g.font=F(500,22); g.fillStyle=light.sub; g.fillStyle=light.deep; g.fillRect(80,392,34,6); g.fillStyle=light.sub; g.fillText('帳戶現金',122,402);
+  g.fillStyle=light.sky; g.fillRect(260,392,34,6); g.fillStyle=light.sub; g.fillText('真實淨額',302,402);
+  const svg = chartSVG(R, W-160, 580, {fs:23, pl:90, pr:56, pt:44, pb:56})
+    .replace(/var\(--deep\)/g, light.deep).replace(/var\(--sky\)/g, light.sky).replace(/var\(--line\)/g, '#D7EAEE')
+    .replace(/var\(--sub\)/g, light.sub).replace(/var\(--ink\)/g, light.ink).replace('width="100%"', `width="${W-160}" height="580"`).replace(/style="[^"]*"/,'');
+  const img = await new Promise((res,rej)=>{ const im=new Image(); im.onload=()=>res(im); im.onerror=rej; im.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg); });
+  g.drawImage(img,80,420,W-160,580);
+  // table card
+  const cols = R.rows.length; const top=1040;
+  const lines=[['薪水','salary'],['回流','inflow'],['卡費扣款','card'],['分期','inst'],['固定支出','fixed'],['現金支出','cashSpend']];
+  const th = 50*(lines.length+3)+90;
+  rr(48,top,W-96,th,24,light.card);
+  g.fillStyle=light.deep; g.font=F(800,32); g.fillText('每月明細',80,top+52);
+  const x0=80, labW=180, colW=(W-160-labW)/Math.max(1,cols);
+  let y=top+100; g.font=F(700,23); g.fillStyle=light.sub; g.textAlign='right';
+  R.rows.forEach((r,i)=>g.fillText(mLabel(r.mk), x0+labW+colW*(i+1)-6, y)); g.textAlign='left';
+  const fit = (t, maxW) => { let s=t; let size=24; g.font=F(500,size); while(g.measureText(s).width>maxW && size>14){ size--; g.font=F(500,size);} return size; };
+  lines.forEach(([lab,k])=>{ y+=50; g.strokeStyle=light.line; g.lineWidth=1.5; g.beginPath(); g.moveTo(x0,y-32); g.lineTo(W-80,y-32); g.stroke();
+    g.fillStyle=light.ink; g.font=F(500,24); g.fillText(lab,x0,y); g.textAlign='right';
+    R.rows.forEach((r,i)=>{ const t=r[k]?fmtS(r[k]):'–'; fit(t,colW-10); g.fillStyle=r[k]?light.ink:'#9AB5B7'; g.fillText(t, x0+labW+colW*(i+1)-6, y); }); g.textAlign='left'; });
+  y+=50; g.strokeStyle=light.deep; g.lineWidth=2.5; g.beginPath(); g.moveTo(x0,y-34); g.lineTo(W-80,y-34); g.stroke();
+  g.fillStyle=light.deep; g.font=F(800,25); g.fillText('月底現金',x0,y); g.textAlign='right';
+  R.rows.forEach((r,i)=>{ const t=fmt(r.endCash); const sz=fit(t,colW-10); g.font=F(800,sz); g.fillStyle=light.deep; g.fillText(t, x0+labW+colW*(i+1)-6, y); }); g.textAlign='left';
+  y+=46; g.fillStyle=light.sky; g.font=F(800,25); g.fillText('真實淨額',x0,y); g.textAlign='right';
+  R.rows.forEach((r,i)=>{ const t=fmt(r.net); const sz=fit(t,colW-10); g.font=F(800,sz); g.fillStyle='#2E8EA0'; g.fillText(t, x0+labW+colW*(i+1)-6, y); }); g.textAlign='left';
+  // footer notes
+  let fy = top+th+50; g.fillStyle=light.sub; g.font=F(500,22);
+  const note = `生活費每月 ${fmt(num(S.living))}（刷卡 ${num(S.cardPct)}%，下個月扣）；起始現金 ${fmt(num(S.startCash))}。`;
+  wrapText(g, note, 56, fy, W-112, 32);
+  const inst = (S.inst||[]).filter(t=>t.name).map(t=>`${t.name} ${fmt(num(t.per))}×${num(t.n)}`).join('、');
+  if(inst) wrapText(g, '分期：'+inst, 56, fy+70, W-112, 32);
+  return new Promise(res=>c.toBlob(res,'image/png'));
+}
+function wrapText(g, text, x, y, maxW, lh){ let line=''; for(const ch of text){ if(g.measureText(line+ch).width>maxW){ g.fillText(line,x,y); y+=lh; line=ch; } else line+=ch; } if(line) g.fillText(line,x,y); }
+
+let downloads = null, lastBlob = null, imgTimer = null, imgBusy = false, imgAgain = false, lastUrl = null;
+function scheduleImg(){ clearTimeout(imgTimer); $('imgState').textContent = '更新中…'; imgTimer = setTimeout(updateImg, 600); }
+async function updateImg(){
+  if(imgBusy){ imgAgain = true; return; }
+  imgBusy = true;
+  try{
+    const blob = await makeImage(); lastBlob = blob;
+    if(lastUrl) URL.revokeObjectURL(lastUrl);
+    lastUrl = URL.createObjectURL(blob); $('imgEl').src = lastUrl;
+    const t = new Date(); $('imgState').textContent = '已更新 ' + String(t.getHours()).padStart(2,'0') + ':' + String(t.getMinutes()).padStart(2,'0');
+  }catch(e){ $('imgState').textContent = '圖片更新失敗，按「重新計算」再試'; }
+  imgBusy = false;
+  if(imgAgain){ imgAgain = false; updateImg(); }
+}
+$('btnRecalc').addEventListener('click', () => { clearTimeout(imgTimer); render(); clearTimeout(imgTimer); updateImg(); });
+$('btnSave').addEventListener('click', async () => {
+  clearTimeout(imgTimer); await updateImg();
+  if(!lastBlob) return;
+  if(!downloads){ $('saveHint').textContent = '這裡沒辦法直接下載，請長按圖片儲存。'; return; }
+  try{ await downloads.save({filename: (S.title||'現金流') + '.png', data: lastBlob}); }
+  catch(e){ if(e && (e.code==='unavailable' || e.code==='not_granted' || e.code==='capability_disabled' || e.code==='capability_removed')){ $('saveHint').textContent = '這裡沒辦法直接下載，請長按圖片儲存。'; } }
+});
+
+bindSimple(); Object.keys(LISTS).forEach(renderList); render();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(render, 150); });
+if(window.claude && typeof window.claude.use === 'function'){
+  window.claude.use('downloads').then(d => { downloads = d; }).catch(()=>{});
+}
+})();
+</script>
+</body>
+</html>
